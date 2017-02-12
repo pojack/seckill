@@ -106,28 +106,34 @@ public class SeckillController {
                 if(userPhone==null){
                     throw new SeckillException("电话为空");
                 }
-                seckillExecution=seckillService.executeSeckill(seckillId,userPhone,md5);
+                //用存储过程进行秒杀操作
+                seckillExecution=seckillService.executeSeckillByProcedure(seckillId,userPhone,md5);
                 result = new SeckillResult<SeckillExecution>(true,seckillExecution);
-        }catch (SeckillCloseException e1){
-            //秒杀关闭异常处理
-            logger.error(e1.getMessage(), e1);
-            seckillExecution=new SeckillExecution(seckillId,SeckillStateEnum.END);
-            result = new SeckillResult<SeckillExecution>(true,seckillExecution);
-        }catch (RepeatKillException e2){
-            //重复秒杀异常处理
-            logger.error(e2.getMessage(), e2);
-            seckillExecution=new SeckillExecution(seckillId,SeckillStateEnum.REPEAT_KILL);
-            result = new SeckillResult<SeckillExecution>(true,seckillExecution);
-        }catch (SeckillException e){
-            //其他异常处理
-            logger.error(e.getMessage(), e);
-            seckillExecution=new SeckillExecution(seckillId,SeckillStateEnum.INNER_ERROR);
-            result = new SeckillResult<SeckillExecution>(true,seckillExecution);
-        }finally {
+        }catch (Exception e){
+            logger.info(e.getMessage());
+        }finally{
             System.out.println("execution:"+result);
         }
+//        catch (SeckillCloseException e1){
+//            //秒杀关闭异常处理
+//            logger.error(e1.getMessage(), e1);
+//            seckillExecution=new SeckillExecution(seckillId,SeckillStateEnum.END);
+//            result = new SeckillResult<SeckillExecution>(true,seckillExecution);
+//        }catch (RepeatKillException e2){
+//            //重复秒杀异常处理
+//            logger.error(e2.getMessage(), e2);
+//            seckillExecution=new SeckillExecution(seckillId,SeckillStateEnum.REPEAT_KILL);
+//            result = new SeckillResult<SeckillExecution>(true,seckillExecution);
+//        }catch (SeckillException e){
+//            //其他异常处理
+//            logger.error(e.getMessage(), e);
+//            seckillExecution=new SeckillExecution(seckillId,SeckillStateEnum.INNER_ERROR);
+//            result = new SeckillResult<SeckillExecution>(true,seckillExecution);
+//        }
+
         return result;
     }
+
 
     /**
      * 返回系统当前时间

@@ -1,5 +1,6 @@
 package org.seckill.service.impl;
 
+import org.apache.commons.collections4.MapUtils;
 import org.seckill.dao.SeckillDao;
 import org.seckill.dao.SuccessKilledDao;
 import org.seckill.dao.cache.RedisDAO;
@@ -20,7 +21,9 @@ import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by LLPP on 2016/12/21.
@@ -106,6 +109,47 @@ public class SeckillServiceImpl implements SeckillService {
         }catch(Exception e){
             logger.error(e.getMessage(),e);
             throw new SeckillException("seckill inner error"+e.getMessage());
+        }
+    }
+
+    /**
+     * 用存储过程进行秒杀
+     * @param seckillId
+     * @param userPhone
+     * @param md5
+     * @return
+     */
+    public SeckillExecution executeSeckillByProcedure(long seckillId, long userPhone, String md5) {
+        //当传入md5的值与系统生成的md5不相匹配时，返回秒杀结果，告知controller数据篡改。
+        if(md5==null||!md5.equals(getMd5(""+seckillId))){
+            return new SeckillExecution(seckillId,SeckillStateEnum.DATA_REWRITE);
+        }
+        Date killtime = new Date();
+        Map<String,Object> map = new HashMap<String,Object>();
+
+        //将需传入的参数放入map
+        map.put("seckillId",seckillId);
+        map.put("phone",userPhone);
+        map.put("killTime",killtime);
+        map.put("result",null);
+
+        try{
+            //调用dao的秒杀存储过程方法,result被赋值
+            seckillDao.killByProcedure(map);
+            int result = MapUtils.getInteger(map,"result",-2);
+            //根据返回的result值进行处理。
+            if(result==1){
+                //秒杀成功时，返回秒杀记录。
+                SuccessKilled sk = successKilledDao.queryByIdWithSeckill(seckillId,userPhone);
+                return new SeckillExecution(seckillId,SeckillStateEnum.stateOf(result),sk);
+            }else{
+                //秒杀失败。
+                return new SeckillExecution(seckillId,SeckillStateEnum.stateOf(result));
+            }
+        }catch (Exception e){
+            //处理存储过程发生的异常
+            logger.error(e.getMessage(),e);
+            return new SeckillExecution(seckillId,SeckillStateEnum.INNER_ERROR);
         }
     }
 
