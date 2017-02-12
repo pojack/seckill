@@ -3,6 +3,7 @@ package org.seckill.service;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.seckill.dto.Exposer;
+import org.seckill.dto.SeckillExecution;
 import org.seckill.entity.Seckill;
 import org.seckill.exception.RepeatKillException;
 import org.seckill.exception.SeckillCloseException;
@@ -79,5 +80,29 @@ public class SeckillServiceImplTest {
         }
         Seckill seckill = service.getSeckillById(6);
         logger.info("seckill={}", seckill);
+    }
+
+    /**
+     * 测试通过存储过程执行秒杀
+     */
+    @Test
+    public void procedureTest(){
+        long id = 6;
+        long phone=13124962597L;
+        String md5 = null;
+
+        Exposer exposer = service.exposeUrl(id);
+        md5=exposer.getMd5();
+
+        try {
+            if(exposer.isExposed()){
+                SeckillExecution ske= service.executeSeckillByProcedure(id,phone,md5);
+                logger.info(ske.toString());
+            }else{
+                throw new Exception("地址暴露失败");
+            }
+        }catch (Exception e){
+            logger.error(e.getMessage());
+        }
     }
 }
